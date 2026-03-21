@@ -2,6 +2,17 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
+// 👉 Zeit aus Excel korrekt umwandeln (z. B. 0.1833 → 4:24)
+function formatTime(value) {
+  if (!value || isNaN(value)) return "";
+
+  const totalSeconds = Math.round(value * 24 * 60 * 60);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 function App() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState(null);
@@ -26,14 +37,18 @@ function App() {
 
           const firstCell = row[0] ? row[0].toString() : "";
 
+          // 👉 BLOCK erkennen
           if (firstCell.toUpperCase().includes("BLOCK")) {
             if (currentBlock) blocks.push(currentBlock);
             currentBlock = { name: firstCell, tracks: [] };
-          } else if (currentBlock && row.length > 1) {
+          } 
+          // 👉 Songs erkennen
+          else if (currentBlock && row.length > 1) {
             currentBlock.tracks.push({
               artist: row[0] || "",
               title: row[1] || "",
-              bpm: row[2] || ""
+              bpm: row[2] || "",
+              duration: row[3] || "" // 👈 Länge aus Excel
             });
           }
         });
@@ -54,11 +69,13 @@ function App() {
     <div style={{ padding: 16 }}>
       <h1>DJ Playlist</h1>
 
+      {/* Upload */}
       {!data && <input type="file" onChange={handleFile} />}
 
       {data && (
         <>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 10 }}>
             {Object.keys(data).map((t) => (
               <button
                 key={t}
@@ -72,21 +89,32 @@ function App() {
             ))}
           </div>
 
+          {/* Blocks */}
           {!block &&
             data[tab].map((b, i) => (
-              <div key={i} onClick={() => setBlock(b)}>
+              <div
+                key={i}
+                onClick={() => setBlock(b)}
+                style={{ marginBottom: 8, cursor: "pointer" }}
+              >
                 {b.name}
               </div>
             ))}
 
+          {/* Tracks */}
           {block && (
             <div>
               <button onClick={() => setBlock(null)}>← zurück</button>
               <h2>{block.name}</h2>
 
               {block.tracks.map((t, i) => (
-                <div key={i}>
-                  {t.artist} – {t.title} ({t.bpm} BPM)
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <div>
+                    {t.artist} – {t.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#aaa" }}>
+                    {t.bpm} BPM {t.duration ? `• ${formatTime(t.duration)}` : ""}
+                  </div>
                 </div>
               ))}
             </div>
