@@ -2,15 +2,28 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
-// 👉 Zeit aus Excel korrekt umwandeln (z. B. 0.1833 → 4:24)
+// 👉 Zeit sauber erkennen (egal ob Excel Zahl oder Text)
 function formatTime(value) {
-  if (!value || isNaN(value)) return "";
+  if (!value) return "";
 
-  const totalSeconds = Math.round(value * 24 * 60 * 60);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  // 👉 Wenn Excel Zahl (z. B. 0.1833)
+  if (typeof value === "number") {
+    const totalSeconds = Math.round(value * 24 * 60 * 60);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
 
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  // 👉 Wenn String (z. B. "00:03:23")
+  if (typeof value === "string" && value.includes(":")) {
+    const parts = value.split(":");
+
+    if (parts.length === 3) {
+      return `${parseInt(parts[1])}:${parts[2]}`;
+    }
+  }
+
+  return value;
 }
 
 function App() {
@@ -43,12 +56,12 @@ function App() {
             currentBlock = { name: firstCell, tracks: [] };
           } 
           // 👉 Songs erkennen
-          else if (currentBlock && row.length > 1) {
+          else if (currentBlock && row.length > 3) {
             currentBlock.tracks.push({
               artist: row[0] || "",
               title: row[1] || "",
               bpm: row[2] || "",
-              duration: row[3] || "" // 👈 Länge aus Excel
+              duration: row[3] || ""
             });
           }
         });
@@ -69,7 +82,6 @@ function App() {
     <div style={{ padding: 16 }}>
       <h1>DJ Playlist</h1>
 
-      {/* Upload */}
       {!data && <input type="file" onChange={handleFile} />}
 
       {data && (
@@ -110,10 +122,11 @@ function App() {
               {block.tracks.map((t, i) => (
                 <div key={i} style={{ marginBottom: 6 }}>
                   <div>
-                    {t.artist} – {t.title}
+                    {t.artist} – {t.title} – {t.bpm}
                   </div>
                   <div style={{ fontSize: 12, color: "#aaa" }}>
-                    {t.bpm} BPM {t.duration ? `• ${formatTime(t.duration)}` : ""}
+                    {t.bpm ? `${t.bpm} BPM` : ""}{" "}
+                    {t.duration ? `• ${formatTime(t.duration)}` : ""}
                   </div>
                 </div>
               ))}
