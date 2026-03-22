@@ -2,33 +2,50 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
-// ✅ Universelle Zeit-Umwandlung (ALLE Excel-Fälle)
+// 🔥 ULTRA-ROBUSTE ZEIT-FUNKTION
 function formatTime(value) {
-  if (!value) return "";
+  if (value === null || value === undefined || value === "") return "";
 
-  // 👉 Fall 1: Excel-Zahl (z. B. 0.1833)
+  // 👉 ZAHLEN (Excel oder Sekunden)
   if (typeof value === "number") {
-    const totalSeconds = Math.round(value * 24 * 60 * 60);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  }
-
-  // 👉 Fall 2: String
-  if (typeof value === "string" && value.includes(":")) {
-    const parts = value.split(":").map(p => parseInt(p, 10));
-
-    // 👉 "199:00" → Sekunden
-    if (parts.length === 2) {
-      const totalSeconds = parts[0];
+    // Excel-Zeit (z. B. 0.1833)
+    if (value < 1) {
+      const totalSeconds = Math.round(value * 24 * 60 * 60);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     }
 
-    // 👉 "00:03:23"
-    if (parts.length === 3) {
-      return `${parts[1]}:${parts[2].toString().padStart(2, "0")}`;
+    // Sekunden (z. B. 199)
+    const minutes = Math.floor(value / 60);
+    const seconds = Math.round(value % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  // 👉 STRINGS
+  if (typeof value === "string") {
+    const clean = value.trim();
+
+    // "00:03:23"
+    if (/^\d{1,2}:\d{2}:\d{2}$/.test(clean)) {
+      const [, m, s] = clean.split(":").map(Number);
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    // "199:00" → Sekunden
+    if (/^\d+:\d{2}$/.test(clean)) {
+      const seconds = parseInt(clean.split(":")[0], 10);
+      const minutes = Math.floor(seconds / 60);
+      const rest = seconds % 60;
+      return `${minutes}:${rest.toString().padStart(2, "0")}`;
+    }
+
+    // "199" → Sekunden
+    if (/^\d+$/.test(clean)) {
+      const seconds = parseInt(clean, 10);
+      const minutes = Math.floor(seconds / 60);
+      const rest = seconds % 60;
+      return `${minutes}:${rest.toString().padStart(2, "0")}`;
     }
   }
 
@@ -59,20 +76,19 @@ function App() {
 
           const firstCell = row[0] ? row[0].toString() : "";
 
-          // 👉 Block erkennen
+          // 👉 BLOCK erkennen
           if (firstCell.toUpperCase().includes("BLOCK")) {
             if (currentBlock) blocks.push(currentBlock);
             currentBlock = { name: firstCell, tracks: [] };
           }
 
-          // 👉 Track-Zeile (dein Excel-Format!)
+          // 👉 TRACK erkennen
           else if (currentBlock && row.length > 2) {
             const full = row[0] || "";
 
             let artist = "";
             let title = "";
 
-            // 👉 "Artist - Title" splitten
             if (full.includes(" - ")) {
               const parts = full.split(" - ");
               artist = parts[0];
@@ -85,7 +101,7 @@ function App() {
               artist,
               title,
               bpm: row[1] || "",
-              duration: row[2] || ""
+              duration: row[2]
             });
           }
         });
@@ -125,7 +141,7 @@ function App() {
             ))}
           </div>
 
-          {/* Blocks */}
+          {/* Block-Liste */}
           {!block &&
             data[tab].map((b, i) => (
               <div
