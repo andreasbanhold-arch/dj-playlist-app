@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
-// 👉 Zeit korrekt formatieren
+// ✅ Universelle Zeit-Umwandlung (ALLE Excel-Fälle)
 function formatTime(value) {
   if (!value) return "";
 
-  // Excel-Zahl (z. B. 0.1833)
+  // 👉 Fall 1: Excel-Zahl (z. B. 0.1833)
   if (typeof value === "number") {
     const totalSeconds = Math.round(value * 24 * 60 * 60);
     const minutes = Math.floor(totalSeconds / 60);
@@ -14,12 +14,21 @@ function formatTime(value) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  // String wie "00:03:23"
+  // 👉 Fall 2: String
   if (typeof value === "string" && value.includes(":")) {
-    const parts = value.split(":");
+    const parts = value.split(":").map(p => parseInt(p, 10));
 
+    // 👉 "199:00" → Sekunden
+    if (parts.length === 2) {
+      const totalSeconds = parts[0];
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    // 👉 "00:03:23"
     if (parts.length === 3) {
-      return `${parseInt(parts[1])}:${parts[2]}`;
+      return `${parts[1]}:${parts[2].toString().padStart(2, "0")}`;
     }
   }
 
@@ -56,14 +65,14 @@ function App() {
             currentBlock = { name: firstCell, tracks: [] };
           }
 
-          // 👉 Track-Zeile
+          // 👉 Track-Zeile (dein Excel-Format!)
           else if (currentBlock && row.length > 2) {
             const full = row[0] || "";
 
             let artist = "";
             let title = "";
 
-            // 👉 "Artist - Title" trennen
+            // 👉 "Artist - Title" splitten
             if (full.includes(" - ")) {
               const parts = full.split(" - ");
               artist = parts[0];
