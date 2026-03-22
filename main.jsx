@@ -2,46 +2,28 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
+// ✅ EXAKT für deine Excel-Daten
 function formatTime(value) {
   if (value === null || value === undefined || value === "") return "";
 
+  // 👉 ALLE Zahlen sind Excel-Zeit!
   if (typeof value === "number") {
-    if (value < 1) {
-      const totalSeconds = Math.round(value * 24 * 60 * 60);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    }
-
-    const minutes = Math.floor(value / 60);
-    const seconds = Math.round(value % 60);
+    const totalSeconds = Math.round(value * 24 * 60 * 60);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  if (typeof value === "string") {
-    const clean = value.trim();
+  // 👉 Falls doch mal String
+  if (typeof value === "string" && value.includes(":")) {
+    const parts = value.split(":").map(Number);
 
-    if (/^\d{1,2}:\d{2}:\d{2}$/.test(clean)) {
-      const [, m, s] = clean.split(":").map(Number);
-      return `${m}:${s.toString().padStart(2, "0")}`;
-    }
-
-    if (/^\d+:\d{2}$/.test(clean)) {
-      const seconds = parseInt(clean.split(":")[0], 10);
-      const minutes = Math.floor(seconds / 60);
-      const rest = seconds % 60;
-      return `${minutes}:${rest.toString().padStart(2, "0")}`;
-    }
-
-    if (/^\d+$/.test(clean)) {
-      const seconds = parseInt(clean, 10);
-      const minutes = Math.floor(seconds / 60);
-      const rest = seconds % 60;
-      return `${minutes}:${rest.toString().padStart(2, "0")}`;
+    if (parts.length === 3) {
+      return `${parts[1]}:${parts[2].toString().padStart(2, "0")}`;
     }
   }
 
-  return "??";
+  return "";
 }
 
 function App() {
@@ -68,10 +50,14 @@ function App() {
 
           const firstCell = row[0] ? row[0].toString() : "";
 
+          // 👉 Block erkennen
           if (firstCell.toUpperCase().includes("BLOCK")) {
             if (currentBlock) blocks.push(currentBlock);
             currentBlock = { name: firstCell, tracks: [] };
-          } else if (currentBlock && row.length > 2) {
+          }
+
+          // 👉 Tracks
+          else if (currentBlock && row.length > 2) {
             const full = row[0] || "";
 
             let artist = "";
@@ -108,12 +94,13 @@ function App() {
 
   return (
     <div style={{ padding: 16 }}>
-      <h1>DJ Playlist (DEBUG)</h1>
+      <h1>DJ Playlist</h1>
 
       {!data && <input type="file" onChange={handleFile} />}
 
       {data && (
         <>
+          {/* Tabs */}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             {Object.keys(data).map((t) => (
               <button
@@ -128,6 +115,7 @@ function App() {
             ))}
           </div>
 
+          {/* Blocks */}
           {!block &&
             data[tab].map((b, i) => (
               <div key={i} onClick={() => setBlock(b)} style={{ cursor: "pointer" }}>
@@ -135,21 +123,17 @@ function App() {
               </div>
             ))}
 
+          {/* Tracks */}
           {block && (
             <div>
               <button onClick={() => setBlock(null)}>← zurück</button>
               <h2>{block.name}</h2>
 
               {block.tracks.map((t, i) => (
-                <div key={i} style={{ marginBottom: 10 }}>
-                  <div>
-                    {t.artist} – {t.title} – {t.bpm} BPM – {formatTime(t.duration)}
-                  </div>
-
-                  {/* 🔴 DEBUG INFO */}
-                  <div style={{ fontSize: 12, color: "red" }}>
-                    RAW: {JSON.stringify(t.duration)} | TYPE: {typeof t.duration}
-                  </div>
+                <div key={i} style={{ marginBottom: 6 }}>
+                  {t.artist} – {t.title}
+                  {t.bpm ? ` – ${t.bpm} BPM` : ""}
+                  {t.duration ? ` – ${formatTime(t.duration)}` : ""}
                 </div>
               ))}
             </div>
