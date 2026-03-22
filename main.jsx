@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
-// 👉 Zeit sauber erkennen (egal ob Excel Zahl oder Text)
+// 👉 Zeit korrekt formatieren
 function formatTime(value) {
   if (!value) return "";
 
-  // 👉 Wenn Excel Zahl (z. B. 0.1833)
+  // Excel-Zahl (z. B. 0.1833)
   if (typeof value === "number") {
     const totalSeconds = Math.round(value * 24 * 60 * 60);
     const minutes = Math.floor(totalSeconds / 60);
@@ -14,7 +14,7 @@ function formatTime(value) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  // 👉 Wenn String (z. B. "00:03:23")
+  // String wie "00:03:23"
   if (typeof value === "string" && value.includes(":")) {
     const parts = value.split(":");
 
@@ -23,7 +23,7 @@ function formatTime(value) {
     }
   }
 
-  return value;
+  return "";
 }
 
 function App() {
@@ -50,18 +50,33 @@ function App() {
 
           const firstCell = row[0] ? row[0].toString() : "";
 
-          // 👉 BLOCK erkennen
+          // 👉 Block erkennen
           if (firstCell.toUpperCase().includes("BLOCK")) {
             if (currentBlock) blocks.push(currentBlock);
             currentBlock = { name: firstCell, tracks: [] };
-          } 
-          // 👉 Songs erkennen
-          else if (currentBlock && row.length > 3) {
+          }
+
+          // 👉 Track-Zeile
+          else if (currentBlock && row.length > 2) {
+            const full = row[0] || "";
+
+            let artist = "";
+            let title = "";
+
+            // 👉 "Artist - Title" trennen
+            if (full.includes(" - ")) {
+              const parts = full.split(" - ");
+              artist = parts[0];
+              title = parts.slice(1).join(" - ");
+            } else {
+              title = full;
+            }
+
             currentBlock.tracks.push({
-              artist: row[0] || "",
-              title: row[1] || "",
-              bpm: row[2] || "",
-              duration: row[3] || ""
+              artist,
+              title,
+              bpm: row[1] || "",
+              duration: row[2] || ""
             });
           }
         });
@@ -121,13 +136,9 @@ function App() {
 
               {block.tracks.map((t, i) => (
                 <div key={i} style={{ marginBottom: 6 }}>
-                  <div>
-                    {t.artist} – {t.title} – {t.bpm}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#aaa" }}>
-                    {t.bpm ? `${t.bpm} BPM` : ""}{" "}
-                    {t.duration ? `• ${formatTime(t.duration)}` : ""}
-                  </div>
+                  {t.artist} – {t.title}
+                  {t.bpm ? ` – ${t.bpm} BPM` : ""}
+                  {t.duration ? ` – ${formatTime(t.duration)}` : ""}
                 </div>
               ))}
             </div>
