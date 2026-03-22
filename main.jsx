@@ -2,13 +2,10 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
-// 🔥 ULTRA-ROBUSTE ZEIT-FUNKTION
 function formatTime(value) {
   if (value === null || value === undefined || value === "") return "";
 
-  // 👉 ZAHLEN (Excel oder Sekunden)
   if (typeof value === "number") {
-    // Excel-Zeit (z. B. 0.1833)
     if (value < 1) {
       const totalSeconds = Math.round(value * 24 * 60 * 60);
       const minutes = Math.floor(totalSeconds / 60);
@@ -16,23 +13,19 @@ function formatTime(value) {
       return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     }
 
-    // Sekunden (z. B. 199)
     const minutes = Math.floor(value / 60);
     const seconds = Math.round(value % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  // 👉 STRINGS
   if (typeof value === "string") {
     const clean = value.trim();
 
-    // "00:03:23"
     if (/^\d{1,2}:\d{2}:\d{2}$/.test(clean)) {
       const [, m, s] = clean.split(":").map(Number);
       return `${m}:${s.toString().padStart(2, "0")}`;
     }
 
-    // "199:00" → Sekunden
     if (/^\d+:\d{2}$/.test(clean)) {
       const seconds = parseInt(clean.split(":")[0], 10);
       const minutes = Math.floor(seconds / 60);
@@ -40,7 +33,6 @@ function formatTime(value) {
       return `${minutes}:${rest.toString().padStart(2, "0")}`;
     }
 
-    // "199" → Sekunden
     if (/^\d+$/.test(clean)) {
       const seconds = parseInt(clean, 10);
       const minutes = Math.floor(seconds / 60);
@@ -49,7 +41,7 @@ function formatTime(value) {
     }
   }
 
-  return "";
+  return "??";
 }
 
 function App() {
@@ -76,14 +68,10 @@ function App() {
 
           const firstCell = row[0] ? row[0].toString() : "";
 
-          // 👉 BLOCK erkennen
           if (firstCell.toUpperCase().includes("BLOCK")) {
             if (currentBlock) blocks.push(currentBlock);
             currentBlock = { name: firstCell, tracks: [] };
-          }
-
-          // 👉 TRACK erkennen
-          else if (currentBlock && row.length > 2) {
+          } else if (currentBlock && row.length > 2) {
             const full = row[0] || "";
 
             let artist = "";
@@ -100,7 +88,7 @@ function App() {
             currentBlock.tracks.push({
               artist,
               title,
-              bpm: row[1] || "",
+              bpm: row[1],
               duration: row[2]
             });
           }
@@ -120,14 +108,13 @@ function App() {
 
   return (
     <div style={{ padding: 16 }}>
-      <h1>DJ Playlist</h1>
+      <h1>DJ Playlist (DEBUG)</h1>
 
       {!data && <input type="file" onChange={handleFile} />}
 
       {data && (
         <>
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             {Object.keys(data).map((t) => (
               <button
                 key={t}
@@ -141,29 +128,28 @@ function App() {
             ))}
           </div>
 
-          {/* Block-Liste */}
           {!block &&
             data[tab].map((b, i) => (
-              <div
-                key={i}
-                onClick={() => setBlock(b)}
-                style={{ marginBottom: 8, cursor: "pointer" }}
-              >
+              <div key={i} onClick={() => setBlock(b)} style={{ cursor: "pointer" }}>
                 {b.name}
               </div>
             ))}
 
-          {/* Tracks */}
           {block && (
             <div>
               <button onClick={() => setBlock(null)}>← zurück</button>
               <h2>{block.name}</h2>
 
               {block.tracks.map((t, i) => (
-                <div key={i} style={{ marginBottom: 6 }}>
-                  {t.artist} – {t.title}
-                  {t.bpm ? ` – ${t.bpm} BPM` : ""}
-                  {t.duration ? ` – ${formatTime(t.duration)}` : ""}
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <div>
+                    {t.artist} – {t.title} – {t.bpm} BPM – {formatTime(t.duration)}
+                  </div>
+
+                  {/* 🔴 DEBUG INFO */}
+                  <div style={{ fontSize: 12, color: "red" }}>
+                    RAW: {JSON.stringify(t.duration)} | TYPE: {typeof t.duration}
+                  </div>
                 </div>
               ))}
             </div>
